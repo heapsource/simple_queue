@@ -28,11 +28,15 @@ JobQueue = SimpleQueue::Queue.new(:jobs)
 
 ### Jobs
 
-The jobs should be Ruby objects that respond to `#run` method (without
+The jobs should be Ruby objects that respond to `run` method (without
 arguments), there is a simple example:
 
 ```ruby
-class ComputationJob < Struct.new(:seconds)
+class ComputationJob
+  def initialize(seconds)
+    @seconds = seconds
+  end
+
   def run
     sleep @seconds
   end
@@ -42,7 +46,8 @@ end
 Then you can insert jobs in the queue:
 
 ```ruby
-JobQueue.push(ComputationJob.new(10))
+job = ComputationJob.new(10)
+JobQueue.push(job)
 ```
 
 ### Consumers
