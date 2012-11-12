@@ -1,5 +1,9 @@
 require "securerandom"
-require "rubinius/actor"
+begin
+  require "rubinius/actor"
+rescue RuntimeError
+  require "simple_queue/actor"
+end
 require "case"
 require "redis"
 
