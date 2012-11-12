@@ -26,10 +26,17 @@ You must set a queue in your application to save jobs:
 JobQueue = SimpleQueue::Queue.new(:jobs)
 ```
 
+In Rails 4 this can be set with the `config.queue` in environment config
+file:
+
+```ruby
+config.queue = SimpleQueue::Queue.new(:jobs)
+```
+
 ### Jobs
 
 The jobs should be Ruby objects that respond to `run` method (without
-arguments), there is a simple example:
+arguments, the arguments should be set in other method, ex. initialize), there is a simple example:
 
 ```ruby
 class ComputationJob
@@ -48,6 +55,13 @@ Then you can insert jobs in the queue:
 ```ruby
 job = ComputationJob.new(10)
 JobQueue.push(job)
+```
+
+In Rails 4 this can be done with `Rails.queue`
+
+```ruby
+job = ComputationJob.new(10)
+Rails.queue.push(job)
 ```
 
 ### Consumers
