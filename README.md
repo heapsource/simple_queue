@@ -79,6 +79,14 @@ namespace :jobs do
 end
 ```
 
+## Acknowledges
+
+This libraby is done thanks to the work of:
+
+  - All Rubinius team and contributors
+  - MenTaLguY and his awesome work in Rubinius Actors API
+  - mperham, his posts about Rubinius Actors and his work in GirlFriday
+
 ## Contributing
 
 1. Fork it
