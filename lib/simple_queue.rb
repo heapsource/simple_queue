@@ -8,7 +8,7 @@ require "case"
 require "redis"
 
 class SimpleQueue
-  FinishedWork = Case::Struct.new(:worker, :job_id, :result)
+  FinishedWork = Case::Struct.new(:worker)
   Work = Case::Struct.new(:job)
 
   def self.redis
@@ -66,7 +66,6 @@ class SimpleQueue
           active_workers << worker
           worker << message
         when FinishedWork
-          queue.notify(@queue.name, message.job_id, "finished", message.result) if queue.respond_to?(:notify)
           worker = message.worker
           puts "Finished Work received, sending to Worker (#{worker.object_id}) to inactive workers"
           inactive_workers << worker
@@ -82,9 +81,9 @@ class SimpleQueue
       loop do
         case message = Rubinius::Actor.receive
         when Work
-          job_id, job = Marshal.load(message.job)
-          result = Marshal.dump(job.run)
-          @supervisor << FinishedWork[Rubinius::Actor.current, job_id, result]
+          job = Marshal.load(message.job)
+          job.run
+          @supervisor << FinishedWork[Rubinius::Actor.current]
         end
       end
     end
@@ -102,26 +101,15 @@ class SimpleQueue
 
   class Queue < Struct.new(:name)
     def push(job)
-      job_id = SecureRandom.hex(8)
-      SimpleQueue.redis.lpush("simple:#{@name}", Marshal.dump([job_id, job]))
-      SimpleQueue.redis.mapped_hmset("simple:#{@name}:#{job_id}", :status => "pending", :result => nil)
-      job_id
+      SimpleQueue.redis.lpush("simple:#{@name}", Marshal.dump(job))
     end
 
     def pop
       SimpleQueue.redis.rpop("simple:#{@name}")
     end
 
-    def status(job_id)
-      SimpleQueue.redis.mapped_hmget("simple:#{@name}:#{job_id}", "status", "result")
-    end
-
     def size
       SimpleQueue.redis.llen("simple:#{@name}")
-    end
-
-    def notify(queue_name, job_id, status, result)
-      SimpleQueue.redis.mapped_hmset("simple:#{queue_name}:#{job_id}", :status => status, :result => result)
     end
   end
 end
