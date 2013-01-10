@@ -1,6 +1,13 @@
 # SimpleQueue
 
-SimpleQueue is a simple background system for Ruby
+SimpleQueue is a simple background system for Ruby.
+
+## Features/Problems
+
+  - Uses Rubinius Actors API (and a port for MRI) for jobs processing.
+  - Uses Redis as backend for jobs queue.
+  - Uses a reliable queue maintaining jobs saved in a backup queue when the workers crash.
+  - Use a simple API for jobs, Jobs are Marshallable objects that respond to #run method
 
 ## Installation
 
@@ -24,13 +31,6 @@ You must set a queue in your application to save jobs:
 
 ```ruby
 JobQueue = SimpleQueue::Queue.new(:jobs)
-```
-
-In Rails 4 this can be set with the `config.queue` in environment config
-file:
-
-```ruby
-config.queue = SimpleQueue::Queue.new(:jobs)
 ```
 
 ### Jobs
@@ -57,13 +57,6 @@ job = ComputationJob.new(10)
 JobQueue.push(job)
 ```
 
-In Rails 4 this can be done with `Rails.queue`
-
-```ruby
-job = ComputationJob.new(10)
-Rails.queue.push(job)
-```
-
 ### Consumers
 One or multiple workers should be started to consume jobs, this can be
 done for example in a rake task:
@@ -83,9 +76,10 @@ end
 
 This libraby is done thanks to the work of:
 
-  - All Rubinius team and contributors
   - MenTaLguY and his awesome work in Rubinius Actors API
-  - mperham, his posts about Rubinius Actors and his work in GirlFriday
+  - soveran and his work in Redis gem, Ost and his post about reliable queues 
+  - mperham and his posts about Rubinius Actors and his work in GirlFriday
+  - All Rubinius team and contributors
 
 ## Contributing
 
