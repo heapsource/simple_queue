@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.authors       = ["Guillermo Iguaran"]
   gem.email         = ["guilleiguaran@gmail.com"]
   gem.description   = %q{Simple background jobs}
-  gem.summary       = %q{Simple background jobs using Rubinius Actors}
+  gem.summary       = %q{Simple background jobs using Rubinius Actors and Redis}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($/)
