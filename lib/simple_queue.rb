@@ -1,4 +1,3 @@
-require "securerandom"
 begin
   require "rubinius/actor"
 rescue RuntimeError
@@ -8,7 +7,7 @@ require "case"
 require "redis"
 
 class SimpleQueue
-  FinishedWork = Case::Struct.new(:worker)
+  FinishedWork = Case::Struct.new(:worker, :job)
   Work = Case::Struct.new(:job)
 
   def self.redis
@@ -42,12 +41,12 @@ class SimpleQueue
         end
       end
 
-      puts "Starting to consume jobs in #{@queue} queue..."
+      puts "Starting to consume jobs in '#{@queue.name}' queue..."
       wait_queue_loop
     end
 
     def stop
-      puts "Stopping consuming jobs in #{@queue} queue"
+      puts "Stopping consuming jobs in '#{@queue.name}' queue"
       @stopping = true
     end
 
@@ -67,6 +66,7 @@ class SimpleQueue
           worker << message
         when FinishedWork
           worker = message.worker
+          @queue.recycle(message.job)
           puts "Finished Work received, sending to Worker (#{worker.object_id}) to inactive workers"
           inactive_workers << worker
           active_workers.delete(worker)
@@ -83,7 +83,7 @@ class SimpleQueue
         when Work
           job = Marshal.load(message.job)
           job.run
-          @supervisor << FinishedWork[Rubinius::Actor.current]
+          @supervisor << FinishedWork[Rubinius::Actor.current, message.job]
         end
       end
     end
@@ -91,21 +91,33 @@ class SimpleQueue
     def wait_queue_loop
       loop do
         break if @stopping
-        if job = @queue.pop
-          puts "New job received, sending work to Supervisor (#{@supervisor.object_id})"
-          @supervisor << Work[job]
-        end
+        job = @queue.pop
+        next unless job
+        puts "New job received, sending work to Supervisor (#{@supervisor.object_id})"
+        @supervisor << Work[job]
       end
     end
   end
 
-  class Queue < Struct.new(:name)
+  class Queue
+    attr_reader :name
+
+    def initialize(name)
+      @name = name
+      @backup = "simple:#{@name}:#{Socket.gethostname}:#{Process.pid}"
+      puts "Jobs backups will be saved in #{@backup}"
+    end
+
     def push(job)
       SimpleQueue.redis.lpush("simple:#{@name}", Marshal.dump(job))
     end
 
     def pop
-      SimpleQueue.redis.rpop("simple:#{@name}")
+      SimpleQueue.redis.brpoplpush("simple:#{@name}", @backup, 1)
+    end
+
+    def recycle(job)
+      SimpleQueue.redis.lrem(@backup, 1, job)
     end
 
     def size
